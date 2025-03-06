@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="Keywords" content="Line approximation">
+<meta name="Description" content="Line approximation of points using least squares method">
+<meta name="author" content="webhauser@gmail.com">
+<title>Line approximation of points</title>
+<style>
+* { margin:0; padding:0; } 		/* to remove the top and left whitespace */
+html, body { overflow: hidden;} /* remove scrollbars */
+#Canvas {
+	position:fixed;
+	left:0;top:0;
+	width:100%;height:100%;
+	border:1px solid #c3c3c3;
+}
+</style>
+<noscript>JavaScript is Disabled. Please enable javascript and refresh the page</noscript>
+</head>
+<body>
+<canvas id="Canvas">Your browser does not support the canvas element</canvas>
+<script>
+"use strict";
+
+const EPS = 0.0001;
+const Message="Click on canvas to create points\nPress A to draw line\nPress C to restart";
+const Error="Cannot calculate regression line!";
+const MAXN = 10;
+var xp, yp, N;
+var canvas,ctx;
+var x0,y0;
+
+function clear_data() {
+	N=0;
+	xp=[];
+	yp=[];
+}
+
+function cls() {
+	ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function help(text, col='gray') {
+	const msg = text.split("\n");
+	const width = 3*canvas.width/2;
+	var lastx, textwidth, lineheight, y=100;//canvas.height/3;
+	ctx.font = "30px Arial";
+	ctx.fillStyle = col;
+	lineheight = ctx.measureText("M").width * 1.4;
+	for(let i=0; i<msg.length; i++) {
+		if (msg[i].charAt(0)!='-') {
+			textwidth = ctx.measureText(msg[i]).width;
+			lastx = (width-textwidth)/2;
+		}
+		ctx.fillText(msg[i], lastx, y);
+		y += lineheight;
+	}
+}
+
+function draw_num(x,y,n) {
+	ctx.font = "10px Arial";
+	ctx.fillText(''+n, x,y);
+}
+
+function draw_circle(x,y, r, col='red') {
+	ctx.strokeStyle = col;
+	ctx.beginPath();
+	ctx.arc(x,y, r, 0, 2*Math.PI);
+	ctx.stroke();
+}
+
+function draw_line(x0,y0,x1,y1, col='lightgray') {
+	ctx.strokeStyle = col;
+	ctx.beginPath();
+	ctx.moveTo(x0,y0);
+	ctx.lineTo(x1,y1);
+	ctx.stroke();
+}
+
+function draw_line_mxb(m,b) {
+	let x1,y1,x2,y2, x;
+	x=-canvas.width/2;
+	x1=x0+x; y1=y0 - (m*x+b);
+	x=canvas.width/2;
+	x2=x0+x; y2=y0 - (m*x+b);
+	draw_line(x1,y1, x2,y2, 'blue');
+}
+
+function draw_coordinate_system() {
+	draw_line(0, y0, canvas.width, y0);
+	draw_line(x0, 0, x0, canvas.height);
+}
+
+function draw_point(x,y,n) {
+	x+=x0; y=y0-y;
+	draw_circle(x,y, 6);
+	draw_num(x-3,y+3,n);
+}
+
+function result() {
+	let A=0,B=0,C=0,D=0;
+	let M,Q,b,i;
+	
+	for (i=0; i<N; i++) {
+		A += xp[i]*xp[i];
+		B += xp[i];
+		C += xp[i]*yp[i];
+		D += yp[i];
+	}
+	
+	Q = A*N - B*B;
+	
+	if (Math.abs(B) < EPS || Math.abs(Q) < EPS) {
+		help(Error);
+		return;
+	}
+		
+	M = (C*N - D*B) / Q;
+	b = (C - M*A) / B;	
+	draw_line_mxb(M,b);
+}
+
+function start() {
+	clear_data();
+	cls();
+	help(Message);
+	draw_coordinate_system();
+}
+
+function mousedown(e) {
+	let mx = e.offsetX;
+	let my = e.offsetY;
+	if (N < MAXN) {
+		if (N==0) start();
+		xp[N] = mx - x0;
+		yp[N] = y0 - my;
+		draw_point(xp[N], yp[N], N+1);
+		N++;
+	}
+	else {
+		result();
+		N=0;
+	}
+}
+
+function init() {
+	canvas = document.getElementById("Canvas");
+	ctx = canvas.getContext("2d");
+	ctx.lineWidth = 1;
+	ctx.fillStyle = 'blue';
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+	x0 = canvas.width / 2;
+	y0 = canvas.height / 2;
+	canvas.addEventListener('mousedown', mousedown, false);
+	document.onkeydown = function(e) {
+		switch (e.keyCode) {
+			case 65: // A
+				result();
+				break;
+			case 67: // C
+				start();
+				break;
+			default:
+				console.log('Key:', e.keyCode)
+				break;
+		}
+	}
+}
+init();
+start();
+</script>
+</body>
+</html>
